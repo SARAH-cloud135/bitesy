@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'providers/theme_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/recipe_provider.dart';
+import 'utils/app_themes.dart';
+import 'views/home/home_screen.dart';
+import 'views/auth/login_screen.dart';
+import 'views/auth/register_screen.dart';
+import 'views/settings/settings_screen.dart';
+
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => RecipeProvider()),
+      ],
+      child: const CookEasyApp(),
+    ),
+  );
+}
+
+class CookEasyApp extends StatelessWidget {
+  const CookEasyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'CookEasy',
+          debugShowCheckedModeBanner: false,
+          theme: AppThemes.lightTheme,
+          darkTheme: AppThemes.darkTheme,
+          themeMode: themeProvider.themeMode,
+          initialRoute: '/login',
+          routes: {
+            '/login': (context) => LoginScreen(),
+            '/register': (context) => RegisterScreen(),
+            '/home': (context) => HomeScreen(),  // ✅ CERTIFIQUE-SE QUE ESTA ROTA EXISTE
+            '/settings': (context) => SettingsScreen(),
+          },
+        );
+      },
+    );
+  }
+}

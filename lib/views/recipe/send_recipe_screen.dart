@@ -1,0 +1,1 @@
+import 'package:flutter/material.dart'; class SendRecipeScreen extends StatelessWidget { const SendRecipeScreen({super.key}); @override Widget build(BuildContext context) { return Scaffold(appBar: AppBar(title: Text('Enviar Receita')), body: Center(child: Text('Tela de Envio'))); } }
