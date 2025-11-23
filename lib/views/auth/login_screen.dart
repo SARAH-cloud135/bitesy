@@ -103,10 +103,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
       
       Navigator.pushReplacementNamed(context, '/home');
-      print('🔵 Comando de navegação executado'); // DEBUG
+      print('Comando de navegação executado'); // DEBUG
     } else {
-      print('❌ Login falhou'); // DEBUG
-      // ... resto do código
+      print('Login falhou'); 
     }
   }
 }

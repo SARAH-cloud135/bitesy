@@ -1,339 +1,67 @@
 import 'package:flutter/material.dart';
 import '../models/recipe_model.dart';
-import '../repositories/recipe_repository.dart';
-import '../services/api_service.dart';
 
-/// Provider de Receitas
-/// Gerencia o estado das receitas do aplicativo
-class RecipeProvider with ChangeNotifier {
-  final RecipeRepository _recipeRepository = RecipeRepository();
-  
-  List<RecipeModel> _recipes = [];
-  List<RecipeModel> _favoriteRecipes = [];
-  bool _isLoading = false;
-  String? _error;
-  
+class RecipeProvider extends ChangeNotifier {
+  final List<RecipeModel> _recipes = [
+    RecipeModel(
+      id: '1',
+      title: 'Bolo de Chocolate',
+      description: 'Um delicioso bolo de chocolate caseiro',
+      category: 'Doces',
+      time: '45 min',
+      imageUrl: '🍰',
+      authorName: 'CookEasy',
+      ingredients: ['2 xícaras de farinha', '1 xícara de açúcar', '3 ovos', 'Chocolate em pó'],
+      instructions: ['Misture os ingredientes secos', 'Adicione os ovos', 'Asse por 40 minutos'],
+    ),
+    RecipeModel(
+      id: '2',
+      title: 'Lasanha Bolonhesa',
+      description: 'Lasanha tradicional italiana',
+      category: 'Massas',
+      time: '60 min',
+      imageUrl: '🍝',
+      authorName: 'CookEasy',
+      ingredients: ['500g massa para lasanha', '500g carne moída', 'Molho de tomate', 'Queijo'],
+      instructions: ['Prepare o molho', 'Monte as camadas', 'Asse por 45 minutos'],
+    ),
+  ];
+
   List<RecipeModel> get recipes => _recipes;
-  List<RecipeModel> get favoriteRecipes => _favoriteRecipes;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  
-  /// Buscar todas as receitas
-  Future<void> fetchRecipes({String? token}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      _recipes = await _recipeRepository.getAllRecipes(token: token);
-      _isLoading = false;
-      notifyListeners();
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar receitas: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
+
+  List<RecipeModel> get favoriteRecipes {
+    return _recipes.where((recipe) => recipe.isFavorite).toList();
   }
-  
-  /// Buscar receitas por categoria
-  Future<void> fetchRecipesByCategory(String category, {String? token}) async {
-    _isLoading = true;
-    _error = null;
+
+  void addRecipe(RecipeModel recipe) {
+    final recipeWithId = RecipeModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: recipe.title,
+      description: recipe.description,
+      category: recipe.category,
+      time: recipe.time,
+      imageUrl: recipe.imageUrl,
+      authorName: recipe.authorName,
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
+      createdAt: recipe.createdAt,
+    );
+    _recipes.insert(0, recipeWithId);
     notifyListeners();
-    
-    try {
-      _recipes = await _recipeRepository.getRecipesByCategory(
-        category,
-        token: token,
+  }
+
+  void removeRecipe(int index) {
+    _recipes.removeAt(index);
+    notifyListeners();
+  }
+
+  void toggleFavorite(String id) {
+    final index = _recipes.indexWhere((recipe) => recipe.id == id);
+    if (index != -1) {
+      _recipes[index] = _recipes[index].copyWith(
+        isFavorite: !_recipes[index].isFavorite,
       );
-      _isLoading = false;
-      notifyListeners();
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar receitas: $e';
-      _isLoading = false;
       notifyListeners();
     }
-  }
-  
-  /// Buscar receitas (pesquisa)
-  Future<void> searchRecipes(String query, {String? token}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      _recipes = await _recipeRepository.searchRecipes(query, token: token);
-      _isLoading = false;
-      notifyListeners();
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar receitas: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-  
-  /// Criar nova receita
-  Future<bool> createRecipe({
-    required String title,
-    required String description,
-    required String imageUrl,
-    required String time,
-    required String category,
-    required List<String> ingredients,
-    required List<String> instructions,
-    required String token,
-  }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      final newRecipe = await _recipeRepository.createRecipe(
-        title: title,
-        description: description,
-        imageUrl: imageUrl,
-        time: time,
-        category: category,
-        ingredients: ingredients,
-        instructions: instructions,
-        token: token,
-      );
-      
-      _recipes.insert(0, newRecipe);
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _error = 'Erro ao criar receita: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Atualizar receita
-  Future<bool> updateRecipe({
-    required String id,
-    String? title,
-    String? description,
-    String? imageUrl,
-    String? time,
-    String? category,
-    List<String>? ingredients,
-    List<String>? instructions,
-    required String token,
-  }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      final updatedRecipe = await _recipeRepository.updateRecipe(
-        id: id,
-        title: title,
-        description: description,
-        imageUrl: imageUrl,
-        time: time,
-        category: category,
-        ingredients: ingredients,
-        instructions: instructions,
-        token: token,
-      );
-      
-      final index = _recipes.indexWhere((r) => r.id == id);
-      if (index != -1) {
-        _recipes[index] = updatedRecipe;
-      }
-      
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _error = 'Erro ao atualizar receita: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Deletar receita
-  Future<bool> deleteRecipe(String id, {required String token}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      await _recipeRepository.deleteRecipe(id, token: token);
-      _recipes.removeWhere((r) => r.id == id);
-      _favoriteRecipes.removeWhere((r) => r.id == id);
-      
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _error = 'Erro ao deletar receita: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Buscar receitas favoritas
-  Future<void> fetchFavoriteRecipes({required String token}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      _favoriteRecipes = await _recipeRepository.getFavoriteRecipes(token: token);
-      _isLoading = false;
-      notifyListeners();
-    } on ApiException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar favoritos: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-  
-  /// Adicionar aos favoritos
-  Future<bool> addToFavorites(String recipeId, {required String token}) async {
-    try {
-      await _recipeRepository.addToFavorites(recipeId, token: token);
-      
-      // Atualizar localmente
-      final recipe = _recipes.firstWhere((r) => r.id == recipeId);
-      final updatedRecipe = recipe.copyWith(isFavorite: true);
-      
-      final index = _recipes.indexWhere((r) => r.id == recipeId);
-      if (index != -1) {
-        _recipes[index] = updatedRecipe;
-      }
-      
-      if (!_favoriteRecipes.any((r) => r.id == recipeId)) {
-        _favoriteRecipes.add(updatedRecipe);
-      }
-      
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = 'Erro ao adicionar aos favoritos: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Remover dos favoritos
-  Future<bool> removeFromFavorites(String recipeId, {required String token}) async {
-    try {
-      await _recipeRepository.removeFromFavorites(recipeId, token: token);
-      
-      // Atualizar localmente
-      final recipe = _recipes.firstWhere((r) => r.id == recipeId);
-      final updatedRecipe = recipe.copyWith(isFavorite: false);
-      
-      final index = _recipes.indexWhere((r) => r.id == recipeId);
-      if (index != -1) {
-        _recipes[index] = updatedRecipe;
-      }
-      
-      _favoriteRecipes.removeWhere((r) => r.id == recipeId);
-      
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = 'Erro ao remover dos favoritos: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Alternar favorito
-  Future<bool> toggleFavorite(String recipeId, {required String token}) async {
-    final recipe = _recipes.firstWhere((r) => r.id == recipeId);
-    
-    if (recipe.isFavorite) {
-      return await removeFromFavorites(recipeId, token: token);
-    } else {
-      return await addToFavorites(recipeId, token: token);
-    }
-  }
-  
-  // ========== MÉTODOS USANDO THEMEALDB (PARA TESTES) ==========
-  
-  /// Buscar receitas da TheMealDB
-  Future<void> searchRecipesMealDB(String query) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      _recipes = await _recipeRepository.searchRecipesMealDB(query);
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar receitas: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-  
-  /// Buscar receitas por categoria da TheMealDB
-  Future<void> fetchRecipesByCategoryMealDB(String category) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    
-    try {
-      _recipes = await _recipeRepository.getRecipesByCategoryMealDB(category);
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _error = 'Erro ao buscar receitas: $e';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-  
-  /// Limpar erro
-  void clearError() {
-    _error = null;
-    notifyListeners();
-  }
-  
-  /// Limpar receitas
-  void clearRecipes() {
-    _recipes = [];
-    notifyListeners();
   }
 }

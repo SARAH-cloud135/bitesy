@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../../utils/app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
-  RegisterScreen({super.key});
+   RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();

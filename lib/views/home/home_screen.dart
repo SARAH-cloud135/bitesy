@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/recipe_provider.dart';
+import '../../models/recipe_model.dart';
 import '../../utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,17 +15,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    RecipesTab(),
-    ForumTab(),
-    FavoritesTab(),
-    ProfileTab(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      RecipesTab(),
+      ForumTab(),
+      FavoritesTab(),
+      ProfileTab(),
+    ];
+
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -64,8 +66,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ==================== ABA DE RECEITAS (HOME AVANÇADA) ====================
 class RecipesTab extends StatefulWidget {
+  RecipesTab({super.key});
+
   @override
   State<RecipesTab> createState() => _RecipesTabState();
 }
@@ -75,7 +78,7 @@ class _RecipesTabState extends State<RecipesTab> {
   String _selectedCategory = 'Todas';
   String _searchQuery = '';
 
-  final List<Map<String, dynamic>> _categories = [
+  final List<Map<String, dynamic>> _categories = const [
     {'name': 'Todas', 'icon': Icons.restaurant_menu, 'color': AppColors.terracotaDark},
     {'name': 'Doces', 'icon': Icons.cake_rounded, 'color': Color(0xFFE91E63)},
     {'name': 'Salgados', 'icon': Icons.lunch_dining_rounded, 'color': Color(0xFFFF9800)},
@@ -86,22 +89,11 @@ class _RecipesTabState extends State<RecipesTab> {
     {'name': 'Fitness', 'icon': Icons.fitness_center_rounded, 'color': Color(0xFF2196F3)},
   ];
 
-  final List<Map<String, dynamic>> _recipes = [
-    {'title': 'Bolo de Chocolate', 'category': 'Doces', 'time': '45 min', 'difficulty': 'Médio', 'rating': 4.8, 'image': '🍰'},
-    {'title': 'Lasanha Bolonhesa', 'category': 'Massas', 'time': '60 min', 'difficulty': 'Difícil', 'rating': 4.9, 'image': '🍝'},
-    {'title': 'Suco Detox Verde', 'category': 'Bebidas', 'time': '10 min', 'difficulty': 'Fácil', 'rating': 4.5, 'image': '🥤'},
-    {'title': 'Salada Caesar', 'category': 'Vegetariano', 'time': '20 min', 'difficulty': 'Fácil', 'rating': 4.6, 'image': '🥗'},
-    {'title': 'Filé Mignon', 'category': 'Carnes', 'time': '30 min', 'difficulty': 'Médio', 'rating': 4.9, 'image': '🥩'},
-    {'title': 'Coxinha de Frango', 'category': 'Salgados', 'time': '40 min', 'difficulty': 'Médio', 'rating': 4.7, 'image': '🍗'},
-    {'title': 'Wrap Fitness', 'category': 'Fitness', 'time': '15 min', 'difficulty': 'Fácil', 'rating': 4.4, 'image': '🌯'},
-    {'title': 'Brigadeiro Gourmet', 'category': 'Doces', 'time': '25 min', 'difficulty': 'Fácil', 'rating': 4.8, 'image': '🍫'},
-  ];
-
-  List<Map<String, dynamic>> get _filteredRecipes {
-    return _recipes.where((recipe) {
-      final matchesCategory = _selectedCategory == 'Todas' || recipe['category'] == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty || 
-          recipe['title'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+  List<RecipeModel> _getFilteredRecipes(RecipeProvider recipeProvider) {
+    return recipeProvider.recipes.where((recipe) {
+      final matchesCategory = _selectedCategory == 'Todas' || recipe.category == _selectedCategory;
+      final matchesSearch = _searchQuery.isEmpty ||
+          recipe.title.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     }).toList();
   }
@@ -109,11 +101,12 @@ class _RecipesTabState extends State<RecipesTab> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final recipeProvider = Provider.of<RecipeProvider>(context);
+    final filteredRecipes = _getFilteredRecipes(recipeProvider);
     final userName = authProvider.user?.nome ?? 'Visitante';
 
     return CustomScrollView(
       slivers: [
-        // AppBar com Banner
         SliverAppBar(
           expandedHeight: 200,
           floating: false,
@@ -157,11 +150,11 @@ class _RecipesTabState extends State<RecipesTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(Icons.restaurant_menu, color: Colors.white, size: 32),
-                          const SizedBox(width: 12),
-                          const Text('CookEasy', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Icon(Icons.restaurant_menu, color: Colors.white, size: 32),
+                          SizedBox(width: 12),
+                          Text('CookEasy', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -198,7 +191,6 @@ class _RecipesTabState extends State<RecipesTab> {
           ],
         ),
 
-        // Barra de Pesquisa
         SliverToBoxAdapter(
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -242,7 +234,6 @@ class _RecipesTabState extends State<RecipesTab> {
           ),
         ),
 
-        // Categorias Horizontais
         SliverToBoxAdapter(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -263,21 +254,21 @@ class _RecipesTabState extends State<RecipesTab> {
                       final category = _categories[index];
                       final isSelected = _selectedCategory == category['name'];
                       return GestureDetector(
-                        onTap: () => setState(() => _selectedCategory = category['name']),
+                        onTap: () => setState(() => _selectedCategory = category['name'] as String),
                         child: Container(
                           width: 80,
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
-                            color: isSelected ? category['color'] : Colors.white,
+                            color: isSelected ? category['color'] as Color : Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isSelected ? category['color'] : Colors.grey[300]!,
+                              color: isSelected ? category['color'] as Color : Colors.grey[300]!,
                               width: 2,
                             ),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: category['color'].withValues(alpha: 0.3),
+                                      color: (category['color'] as Color).withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -288,13 +279,13 @@ class _RecipesTabState extends State<RecipesTab> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                category['icon'],
+                                category['icon'] as IconData,
                                 size: 32,
-                                color: isSelected ? Colors.white : category['color'],
+                                color: isSelected ? Colors.white : category['color'] as Color,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                category['name'],
+                                category['name'] as String,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -316,7 +307,6 @@ class _RecipesTabState extends State<RecipesTab> {
           ),
         ),
 
-        // Título da Seção
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
@@ -328,7 +318,7 @@ class _RecipesTabState extends State<RecipesTab> {
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black),
                 ),
                 Text(
-                  '${_filteredRecipes.length} receitas',
+                  '${filteredRecipes.length} receitas',
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
@@ -336,10 +326,9 @@ class _RecipesTabState extends State<RecipesTab> {
           ),
         ),
 
-        // Grid de Receitas
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: _filteredRecipes.isEmpty
+          sliver: filteredRecipes.isEmpty
               ? SliverToBoxAdapter(
                   child: Center(
                     child: Column(
@@ -363,8 +352,8 @@ class _RecipesTabState extends State<RecipesTab> {
                     mainAxisSpacing: 12,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildRecipeCard(_filteredRecipes[index]),
-                    childCount: _filteredRecipes.length,
+                    (context, index) => RecipeCard(recipe: filteredRecipes[index]),
+                    childCount: filteredRecipes.length,
                   ),
                 ),
         ),
@@ -374,14 +363,29 @@ class _RecipesTabState extends State<RecipesTab> {
     );
   }
 
-  Widget _buildRecipeCard(Map<String, dynamic> recipe) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+}
+
+class RecipeCard extends StatelessWidget {
+  RecipeCard({super.key, required this.recipe});
+
+  final RecipeModel recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Abrindo: ${recipe['title']}')),
+            SnackBar(content: Text('Abrindo: ${recipe.title}')),
           );
         },
         borderRadius: BorderRadius.circular(16),
@@ -392,7 +396,10 @@ class _RecipesTabState extends State<RecipesTab> {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.terracota.withValues(alpha: 0.3), AppColors.terracotaDark.withValues(alpha: 0.5)],
+                    colors: [
+                      AppColors.terracota.withValues(alpha: 0.3),
+                      AppColors.terracotaDark.withValues(alpha: 0.5)
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -402,20 +409,31 @@ class _RecipesTabState extends State<RecipesTab> {
                   children: [
                     Center(
                       child: Text(
-                        recipe['image'],
+                        recipe.imageUrl ?? '🍽️',
                         style: const TextStyle(fontSize: 48),
                       ),
                     ),
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (recipe.id != null) {
+                            recipeProvider.toggleFavorite(recipe.id!);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            recipe.isFavorite ? Icons.favorite : Icons.favorite_border_rounded,
+                            color: AppColors.terracotaDark,
+                            size: 16,
+                          ),
                         ),
-                        child: const Icon(Icons.favorite_border_rounded, color: AppColors.terracotaDark, size: 16),
                       ),
                     ),
                   ],
@@ -428,7 +446,7 @@ class _RecipesTabState extends State<RecipesTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    recipe['title'],
+                    recipe.title,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -438,7 +456,10 @@ class _RecipesTabState extends State<RecipesTab> {
                     children: [
                       Icon(Icons.access_time_rounded, size: 12, color: Colors.grey[600]),
                       const SizedBox(width: 4),
-                      Text(recipe['time'], style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      Text(
+                        recipe.time ?? 'N/A',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -446,7 +467,7 @@ class _RecipesTabState extends State<RecipesTab> {
                     children: [
                       const Icon(Icons.star_rounded, size: 12, color: Colors.amber),
                       const SizedBox(width: 4),
-                      Text('${recipe['rating']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      const Text('4.5', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -455,8 +476,12 @@ class _RecipesTabState extends State<RecipesTab> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          recipe['difficulty'],
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.terracotaDark),
+                          recipe.category ?? 'Outras',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.terracotaDark,
+                          ),
                         ),
                       ),
                     ],
@@ -469,16 +494,11 @@ class _RecipesTabState extends State<RecipesTab> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 }
 
-// ==================== OUTRAS ABAS (Placeholder) ====================
 class ForumTab extends StatelessWidget {
+  ForumTab({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -493,7 +513,10 @@ class ForumTab extends StatelessWidget {
           children: [
             Icon(Icons.forum_rounded, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text('Em breve!', style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+            Text(
+              'Em breve!',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500),
+            ),
           ],
         ),
       ),
@@ -502,29 +525,58 @@ class ForumTab extends StatelessWidget {
 }
 
 class FavoritesTab extends StatelessWidget {
+  FavoritesTab({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final recipeProvider = Provider.of<RecipeProvider>(context);
+    final favoriteRecipes = recipeProvider.favoriteRecipes;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minhas Receitas Favoritas'),
         backgroundColor: AppColors.terracotaDark,
         foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_border_rounded, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text('Nenhum favorito ainda', style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
+      body: favoriteRecipes.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.favorite_border_rounded, size: 80, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhum favorito ainda',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Toque no coração para adicionar receitas',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            )
+          : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: favoriteRecipes.length,
+              itemBuilder: (context, index) {
+                return RecipeCard(recipe: favoriteRecipes[index]);
+              },
+            ),
     );
   }
 }
 
 class ProfileTab extends StatelessWidget {
+  ProfileTab({super.key});
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -538,17 +590,31 @@ class ProfileTab extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.terracota, AppColors.terracotaDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  gradient: LinearGradient(
+                    colors: [AppColors.terracota, AppColors.terracotaDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-                    CircleAvatar(radius: 50, backgroundColor: Colors.white, child: Icon(Icons.person_rounded, size: 50, color: AppColors.terracotaDark)),
+                    const CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.person_rounded, size: 50, color: AppColors.terracotaDark),
+                    ),
                     const SizedBox(height: 16),
-                    Text(authProvider.user?.nome ?? 'Visitante', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text(
+                      authProvider.user?.nome ?? 'Visitante',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                     const SizedBox(height: 4),
-                    Text(authProvider.user?.email ?? '', style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                    Text(
+                      authProvider.user?.email ?? '',
+                      style: const TextStyle(fontSize: 14, color: Colors.white70),
+                    ),
                   ],
                 ),
               ),
