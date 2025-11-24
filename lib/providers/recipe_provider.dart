@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/recipe_model.dart';
 
 class RecipeProvider extends ChangeNotifier {
+//Define a classe RecipeProvider.Ela estende (extends) ChangeNotifier, o que permite:guardar dados,mudar os dados,avisar a interface quando algo mudou (notifyListeners()).
+
   final List<RecipeModel> _recipes = [
     RecipeModel(
       id: '1',
@@ -27,15 +29,15 @@ class RecipeProvider extends ChangeNotifier {
     ),
   ];
 
-  List<RecipeModel> get recipes => _recipes;
+  List<RecipeModel> get recipes => _recipes; //Isso permite que outras partes do app leiam a lista, mas sem poder modificar diretamente.É uma cópia de acesso, não a lista real.
 
   List<RecipeModel> get favoriteRecipes {
     return _recipes.where((recipe) => recipe.isFavorite).toList();
   }
 
-  void addRecipe(RecipeModel recipe) {
+  void addRecipe(RecipeModel recipe) { //Adiciona receita
     final recipeWithId = RecipeModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: DateTime.now().millisecondsSinceEpoch.toString(),//DateTime.now() pega o momento atual
       title: recipe.title,
       description: recipe.description,
       category: recipe.category,
@@ -47,18 +49,18 @@ class RecipeProvider extends ChangeNotifier {
       createdAt: recipe.createdAt,
     );
     _recipes.insert(0, recipeWithId);
+    notifyListeners(); //notifyListeners() avisa as telas para atualizarem automaticamente.
+  }
+
+  void removeRecipe(int index) { //Remove a receita
+    _recipes.removeAt(index); //Remove a receita na posição indicada.
     notifyListeners();
   }
 
-  void removeRecipe(int index) {
-    _recipes.removeAt(index);
-    notifyListeners();
-  }
-
-  void toggleFavorite(String id) {
-    final index = _recipes.indexWhere((recipe) => recipe.id == id);
-    if (index != -1) {
-      _recipes[index] = _recipes[index].copyWith(
+  void toggleFavorite(String id) { //favoritar/desfavoritar receita
+    final index = _recipes.indexWhere((recipe) => recipe.id == id); 
+    if (index != -1) { //procura a receita pelo id
+      _recipes[index] = _recipes[index].copyWith( //Usa copyWith para criar uma nova receita igual, mas com isFavorite invertido.Substitui a receita antiga pela nova.
         isFavorite: !_recipes[index].isFavorite,
       );
       notifyListeners();
