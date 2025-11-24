@@ -5,36 +5,47 @@ import '../services/api_service.dart';
 /// Isola a lógica de receitas da API
 class RecipeRepository {
   /// Buscar todas as receitas
-  Future<List<RecipeModel>> getAllRecipes({String? token}) async {
-    try {
+  Future<List<RecipeModel>> getAllRecipes({String? token}) async { //futura lista de receitas assincrona
+    try {//Bloco try/catch serve para capturar possíveis erros.
       final response = await ApiService.get('/recipes', token: token);
-      
+//Você está esperando (await) a chamada GET para a API:
+//'/recipes' → endpoint (rota da API)
+//token: token → envia o token, se existir
+
+
       final List<dynamic> recipesJson = response['recipes'] ?? response;
+      //Cria uma variável final chamada recipesJson
+      //Se existir response['recipes'], use ele. Senão, use response. O operador ?? = "se for null, pegue o da direita".
+
       return recipesJson.map((json) => RecipeModel.fromJson(json)).toList();
-    } on ApiException {
+//Ela pega uma lista de JSONs e transforma tudo em objetos RecipeModel.
+//RecipeModel.fromJson(json) → converte o JSON para um objeto RecipeModel
+//.toList() Converte para lista
+
+    } on ApiException { //Se acontecer um erro do tipo ApiException, jogue ele pra cima de novo.”(não trata esse erro, só repassa).
       rethrow;
     } catch (e) {
-      throw ApiException('Erro ao buscar receitas: $e');
+      throw ApiException('Erro ao buscar receitas: $e');//Se acontecer QUALQUER outro erro, crie um novo erro ApiException com uma mensagem explicando.”
     }
   }
 
   /// Buscar receitas por categoria
   Future<List<RecipeModel>> getRecipesByCategory(
     String category, {
-    String? token,
-  }) async {
-    try {
-      final response = await ApiService.get(
-        '/recipes?category=$category',
-        token: token,
+    String? token, //Se tiver token, envia ao servidor, se não tiver, envia null.
+  }) async { //Marca a função como assíncrona porque ela usa await.
+    try { //Tudo que pode gerar erro fica aqui.
+      final response = await ApiService.get( //Faz uma requisição do tipo GET.
+        '/recipes?category=$category',//URL para filtrar
+        token: token,//Se um token foi enviado, usa. Se não, passa null.
       );
       
       final List<dynamic> recipesJson = response['recipes'] ?? response;
       return recipesJson.map((json) => RecipeModel.fromJson(json)).toList();
-    } on ApiException {
-      rethrow;
-    } catch (e) {
-      throw ApiException('Erro ao buscar receitas: $e');
+    } on ApiException { //Se for um erro especificamente do tipo ApiException
+      rethrow; //não trata. Apenas relança o erro original.
+    } catch (e) {//Vai pegar qualquer erro que não seja ApiException.
+      throw ApiException('Erro ao buscar receitas: $e');//Cria um novo erro com uma mensagem amigável.
     }
   }
 
@@ -119,6 +130,7 @@ class RecipeRepository {
   }) async {
     try {
       final body = <String, dynamic>{};
+      //Só adiciona o campo no body se ele tiver sido enviado para a função.
       if (title != null) body['title'] = title;
       if (description != null) body['description'] = description;
       if (imageUrl != null) body['imageUrl'] = imageUrl;
@@ -127,10 +139,10 @@ class RecipeRepository {
       if (ingredients != null) body['ingredients'] = ingredients;
       if (instructions != null) body['instructions'] = instructions;
 
-      final response = await ApiService.put(
-        '/recipes/$id',
-        body: body,
-        token: token,
+      final response = await ApiService.put( //Envia um PUT para o servidor.
+        '/recipes/$id', //Monta a URL
+        body: body, //Envia o mapa com os campos que precisam ser atualizados.
+        token: token,//Se você estiver logado, envia seu token de acesso.
       );
       
       return RecipeModel.fromJson(response['recipe'] ?? response);
